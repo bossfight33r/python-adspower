@@ -14,7 +14,7 @@ Works with SunBrowser and FlowerBrowser. Built to be used with Playwright or Pup
 pip install git+https://github.com/bossfighter/python-adspower.git
 ```
 
-Requires AdsPower to be running.
+Requries AdsPower to be running.
 
 ## Usage
 
