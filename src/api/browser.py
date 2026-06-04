@@ -28,8 +28,25 @@ class BrowserApi(BaseApi):
         try:
             yield active
         finally:
-            try: await self.close(profile_id)
-            except AdsPowerError: pass
+            try: await asyncio.shield(self._safe_close(profile_id))
+            except asyncio.CancelledError: pass
+
+    @asynccontextmanager
+    async def ensure_session(self, profile_id: str) -> AsyncIterator[ActiveProfile]:
+        was_active = await self.active(profile_id)
+        active = await self.ensure_open(profile_id)
+        try:
+            yield active
+        finally:
+            if not was_active:
+                try: await asyncio.shield(self._safe_close(profile_id))
+                except asyncio.CancelledError: pass
+
+    async def ensure_open(self, profile_id: str) -> ActiveProfile:
+        if await self.active(profile_id):
+            ws = await self.websocket_url(profile_id)
+            if ws: return ActiveProfile(id=profile_id, name=profile_id, websocket_url=ws, debug_port=0)
+        return await self.open(profile_id)
 
     async def active(self, profile_id: str) -> bool:
         try: return (await self._active_data(profile_id)).get("status") == "Active"
@@ -43,6 +60,10 @@ class BrowserApi(BaseApi):
 
     async def _active_data(self, profile_id: str) -> dict[str, Any]:
         return await self._get("/api/v1/browser/active", user_id=profile_id)
+
+    async def _safe_close(self, profile_id: str) -> None:
+        try: await self.close(profile_id)
+        except AdsPowerError: pass
 
     async def restart(self, profile_id: str, delay: float = 2.0) -> ActiveProfile:
         try: await self.close(profile_id)
