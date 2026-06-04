@@ -1,6 +1,7 @@
 # python-adspower
 
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org)
+[![AdsPower](https://img.shields.io/badge/AdsPower-local%20API-orange)](https://www.adspower.com)
 
 Async Python client for the AdsPower local API.
 
