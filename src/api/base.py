@@ -6,7 +6,7 @@ from typing import Any
 import httpx
 from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
 
-from ..exceptions import AdsPowerApiError, AdsPowerConnectionError
+from ..exceptions import AdsPowerApiError, AdsPowerConnectionError, AdsPowerStuckError
 
 logger = logging.getLogger(__name__)
 _STUCK_MARKERS = ("auth_list", "ETIMEDOUT")
@@ -14,7 +14,7 @@ _RATE_LIMIT_MARKER = "Too many request"
 
 def _is_transient(exc: BaseException) -> bool:
     if isinstance(exc, AdsPowerConnectionError): return True
-    if isinstance(exc, AdsPowerApiError):
+    if isinstance(exc, AdsPowerApiError) and not isinstance(exc, AdsPowerStuckError):
         msg = str(exc)
         if _RATE_LIMIT_MARKER in msg:
             logger.warning("AdsPower rate limit, retrying...")
@@ -26,11 +26,13 @@ _retry = retry(retry=retry_if_exception(_is_transient), stop=stop_after_attempt(
                wait=wait_exponential(multiplier=1, min=1, max=10), reraise=True)
 
 def _check(body: dict[str, Any]) -> dict[str, Any]:
-    if body.get("code") == 0: return body.get("data", {})
+    if body.get("code") == 0:
+        data = body.get("data")
+        return data if isinstance(data, dict) else {}
     code = int(body.get("code") or -1)
     msg = str(body.get("msg") or f"unknown error (code={code})")
     if any(m in msg for m in _STUCK_MARKERS):
-        raise AdsPowerApiError(f"AdsPower stuck: {msg}", code=code)
+        raise AdsPowerStuckError(f"AdsPower appears stuck ({msg}). Try restarting the app.", code=code)
     raise AdsPowerApiError(msg, code=code)
 
 def _parse(r: httpx.Response) -> dict[str, Any]:
