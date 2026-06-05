@@ -52,8 +52,6 @@ async with client.browser.session(profile_id) as active:
 
 ### Reuse existing session
 
-If the browser is already open, `ensure_session` picks it up instead of opening a new one:
-
 ```python
 async with client.browser.ensure_session(profile_id) as active:
     print(active.websocket_url)
@@ -80,8 +78,21 @@ presets: `WIN_FINGERPRINT`, `MAC_FINGERPRINT`, `LINUX_FINGERPRINT`, `ANDROID_FIN
 
 ```python
 profiles = await client.profiles.list(group_id="123", tag="farming")
+profiles = await client.profiles.search("my_account")
+
+async for profile in client.profiles.iter():
+    print(profile.name)
+
+created = await client.profiles.create_many([
+    {"name": "acc1", "proxy": proxy1},
+    {"name": "acc2", "proxy": proxy2},
+])
+
+await client.profiles.update(profile.id, clear_proxy=True)
 await client.profiles.update_cookies(profile.id, "[{...}]")
-await client.profiles.update_proxy(profile.id, new_proxy)
+cookie_str = await client.profiles.cookies(profile.id)
+
+tags = await client.profiles.tags()
 await client.profiles.delete(profile.id)
 ```
 
@@ -100,8 +111,6 @@ restarted = await client.health.restart_dead(["id1", "id2", "id3"])
 
 ### Wait for AdsPower to start
 
-useful when launching AdsPower via subprocess
-
 ```python
 await client.wait_ready(timeout=30.0)
 ```
@@ -109,12 +118,14 @@ await client.wait_ready(timeout=30.0)
 ## Error handling
 
 ```python
-from adspower import AdsPowerError, AdsPowerApiError, AdsPowerConnectionError
+from adspower import AdsPowerError, AdsPowerApiError, AdsPowerConnectionError, AdsPowerStuckError
 
 try:
     await client.browser.open(profile_id)
+except AdsPowerStuckError:
+    print("AdsPower stuck, restart the app")
 except AdsPowerConnectionError:
-    print("AdsPower is not running")
+    print("AdsPower not running")
 except AdsPowerApiError as e:
     print(f"API error {e.code}: {e}")
 ```
