@@ -5,9 +5,9 @@
 
 Async Python client for the AdsPower local API.
 
-thin wrapper around the local REST API (`localhost:50325`) — handles the boring stuff: request building, response parsing, retries.
+thin wrapper around the local REST API (`localhost:50325`) — handles the boring stuff: request building, response parsing, retries
 
-Works with SunBrowser and FlowerBrowser. Built to be used with Playwright or Puppeteer.
+Works with SunBrowser and FlowerBrowser, built to use alongside Playwright or Puppeteer.
 
 ## Install
 
@@ -15,7 +15,7 @@ Works with SunBrowser and FlowerBrowser. Built to be used with Playwright or Pup
 pip install git+https://github.com/bossfighter/python-adspower.git
 ```
 
-Requries AdsPower to be running.
+AdsPower desktop app must be running.
 
 ## Usage
 
@@ -36,7 +36,7 @@ async def main():
 asyncio.run(main())
 ```
 
-Set `ADSPOWER_API_KEY` or pass `api_key="..."` directly.
+Set `ADSPOWER_API_KEY` env var or pass `api_key="..."` directly.
 
 ### Playwright
 
@@ -50,10 +50,20 @@ async with client.browser.session(profile_id) as active:
         await page.goto("https://example.com")
 ```
 
+### Reuse existing session
+
+If the browser is already open, `ensure_session` picks it up instead of opening a new one:
+
+```python
+async with client.browser.ensure_session(profile_id) as active:
+    print(active.websocket_url)
+```
+
 ### Proxy
 
 ```python
 proxy = Proxy.from_url("socks5://user:pass@1.2.3.4:1080")
+# or explicit
 proxy = Proxy(host="1.2.3.4", port=1080, user="u", password="p", type="socks5")
 ```
 
@@ -64,7 +74,7 @@ fp = Fingerprint.random("mac")
 await client.profiles.create("acc", fingerprint=fp)
 ```
 
-Presets: `WIN_FINGERPRINT`, `MAC_FINGERPRINT`, `LINUX_FINGERPRINT`, `ANDROID_FINGERPRINT`, `IOS_FINGERPRINT`.
+presets: `WIN_FINGERPRINT`, `MAC_FINGERPRINT`, `LINUX_FINGERPRINT`, `ANDROID_FINGERPRINT`, `IOS_FINGERPRINT`
 
 ### Profiles
 
@@ -82,10 +92,18 @@ client = AdsPowerClient(api_key="key", concurrency=3)
 opened = await client.manager.open_all(["id1", "id2", "id3"])
 ```
 
-### Health check
+### Health
 
 ```python
 restarted = await client.health.restart_dead(["id1", "id2", "id3"])
+```
+
+### Wait for AdsPower to start
+
+useful when launching AdsPower via subprocess
+
+```python
+await client.wait_ready(timeout=30.0)
 ```
 
 ## Error handling
@@ -101,7 +119,7 @@ except AdsPowerApiError as e:
     print(f"API error {e.code}: {e}")
 ```
 
-Connection drops and rate limits are retried automatically.
+connection drops and rate limits are retried automatically (tenacity, up to 4 attempts)
 
 ## Requirements
 
