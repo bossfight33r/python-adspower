@@ -109,6 +109,7 @@ class ProfilesApi(BaseApi):
         return [p for p in await self.list(group_id=group_id, tag=tag) if needle in p.name.lower()]
 
     async def cookies(self, profile_id: str) -> str:
+        # TODO: нет отдельного эндпоинта — тянем весь список, неэффективно
         data = await self._post("/api/v2/browser-profile/list", {"page": 1, "page_size": 100})
         for item in data.get("list", []):
             if (item.get("profile_id") or item.get("user_id")) == profile_id:

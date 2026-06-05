@@ -66,6 +66,7 @@ class BrowserApi(BaseApi):
         except AdsPowerError: pass
 
     async def restart(self, profile_id: str, delay: float = 2.0) -> ActiveProfile:
+        # пауза чтобы адспавер успел закрыть браузер
         try: await self.close(profile_id)
         except AdsPowerError: pass
         await asyncio.sleep(delay)
