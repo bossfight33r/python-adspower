@@ -55,6 +55,7 @@ class BaseApi:
         kw: dict[str, Any] = {"timeout": timeout} if timeout is not None else {}
         try:
             r = await self.http.get(f"{self.base}{path}", headers=self.headers, params={**self.base_params, **params}, **kw)
+        # except (httpx.ConnectError, httpx.TimeoutException, httpx.RemoteProtocolError) as e:
         except httpx.RequestError as e:
             logger.warning("connection error (%s)", path)
             raise AdsPowerConnectionError(str(e)) from e
