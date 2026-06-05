@@ -84,8 +84,8 @@ async for profile in client.profiles.iter():
     print(profile.name)
 
 created = await client.profiles.create_many([
-    {"name": "acc1", "proxy": proxy1},
-    {"name": "acc2", "proxy": proxy2},
+    {"name": "main_farm", "proxy": proxy1},
+    {"name": "warmup_2", "proxy": proxy2},
 ])
 
 await client.profiles.update(profile.id, clear_proxy=True)
@@ -96,7 +96,7 @@ tags = await client.profiles.tags()
 await client.profiles.delete(profile.id)
 ```
 
-### Bulk / concurrency
+### Opening multiple profiles
 
 ```python
 client = AdsPowerClient(api_key="key", concurrency=3)
