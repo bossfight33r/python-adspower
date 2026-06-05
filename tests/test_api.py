@@ -1,8 +1,9 @@
+import json
 import pytest
 import respx
 import httpx
 
-from adspower import AdsPowerClient, ActiveProfile, AdsPowerApiError
+from adspower import AdsPowerClient, ActiveProfile, AdsPowerApiError, AdsPowerConnectionError
 from adspower.api.browser import BrowserApi
 from adspower.api.profiles import ProfilesApi
 
@@ -49,17 +50,18 @@ async def test_session_closes_on_exception():
 async def test_profiles_list():
     respx.post(f"{BASE}/api/v2/browser-profile/list").mock(return_value=_ok({"list": [
         {"profile_id": "id1", "name": "acc1", "remark": "", "group_name": ""},
+        {"profile_id": "id2", "name": "acc2", "remark": "", "group_name": ""},
     ]}))
     _, api = make_profiles_api()
     profiles = await api.list(size=100)
-    assert len(profiles) == 1 and profiles[0].id == "id1"
+    assert len(profiles) == 2 and profiles[0].id == "id1"
 
 @respx.mock
 async def test_profiles_create():
     respx.post(f"{BASE}/api/v1/user/create").mock(return_value=_ok({"id": "new_id"}))
     _, api = make_profiles_api()
-    p = await api.create(name="test")
-    assert p.id == "new_id"
+    p = await api.create(name="test_account")
+    assert p.id == "new_id" and p.name == "test_account"
 
 @respx.mock
 async def test_profiles_delete():
@@ -67,6 +69,13 @@ async def test_profiles_delete():
     _, api = make_profiles_api()
     await api.delete("profile_123")
     assert route.called
+
+@respx.mock
+async def test_profiles_update_clear_proxy():
+    route = respx.post(f"{BASE}/api/v1/user/update").mock(return_value=_ok({}))
+    _, api = make_profiles_api()
+    await api.update("profile_123", clear_proxy=True)
+    assert json.loads(route.calls[0].request.content)["user_proxy_config"]["proxy_soft"] == "no_proxy"
 
 @respx.mock
 async def test_api_error_code():
@@ -79,5 +88,16 @@ def test_from_env(monkeypatch):
     monkeypatch.setenv("ADSPOWER_API_KEY", "key123")
     assert AdsPowerClient.from_env()._base_params.get("serial_number") == "key123"
 
+def test_from_env_override(monkeypatch):
+    monkeypatch.setenv("ADSPOWER_API_KEY", "env_key")
+    assert AdsPowerClient.from_env(api_key="override")._base_params.get("serial_number") == "override"
+
 def test_concurrency_zero_raises():
     with pytest.raises(ValueError): AdsPowerClient(concurrency=0)
+
+@respx.mock
+async def test_wait_ready_timeout():
+    respx.post(f"{BASE}/api/v2/browser-profile/list").mock(return_value=httpx.Response(503))
+    async with AdsPowerClient() as client:
+        with pytest.raises(AdsPowerConnectionError):
+            await client.wait_ready(timeout=0.1, interval=0.01)

@@ -7,6 +7,7 @@ from typing import Any
 import httpx
 
 from .api import BrowserApi, ProfilesApi
+from .exceptions import AdsPowerConnectionError
 from .services import Health, Manager
 
 LOCAL = "http://local.adspower.net:50325"
@@ -41,6 +42,14 @@ class AdsPowerClient:
                 json={"page": 1, "page_size": 1}, timeout=5.0)
             return r.status_code == 200
         except httpx.RequestError: return False
+
+    async def wait_ready(self, timeout: float = 30.0, interval: float = 1.0) -> None:
+        loop = asyncio.get_running_loop()
+        deadline = loop.time() + timeout
+        while not await self.ping():
+            if loop.time() >= deadline:
+                raise AdsPowerConnectionError(f"AdsPower not ready after {timeout}s")
+            await asyncio.sleep(interval)
 
     async def shutdown(self) -> None: await self.http.aclose()
     async def __aenter__(self) -> "AdsPowerClient": return self
