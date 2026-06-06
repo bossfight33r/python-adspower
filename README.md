@@ -144,3 +144,7 @@ connection drops and rate limits are retried automatically — up to 4 attempts 
 
 - Python 3.11+
 - AdsPower desktop app
+
+## License
+
+MIT
