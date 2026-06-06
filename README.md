@@ -9,6 +9,12 @@ thin wrapper around the local REST API (`localhost:50325`) — handles the borin
 
 Works with SunBrowser and FlowerBrowser, built to use alongside Playwright or Puppeteer.
 
+---
+
+wrote this because AdsPower's local API has no official Python client — just raw HTTP calls with no retries, no types, nothing. kept copy-pasting the same httpx boilerplate across projects until i got fed up. figured if i'm writing it anyway might as well make it reusable.
+
+---
+
 ## Install
 
 ```bash
