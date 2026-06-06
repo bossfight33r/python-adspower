@@ -15,7 +15,7 @@ Works with SunBrowser and FlowerBrowser, built to use alongside Playwright or Pu
 pip install git+https://github.com/bossfighter/python-adspower.git
 ```
 
-AdsPower desktop app must be running.
+AdsPower desktop app needs to be running (and logged in). if you get connection errors on first run — check that the local API is enabled in AdsPower settings.
 
 ## Usage
 
@@ -51,6 +51,8 @@ async with client.browser.session(profile_id) as active:
 ```
 
 ### Reuse existing session
+
+handy if you're not sure whether the browser is already running — `ensure_session` checks first and opens only if needed:
 
 ```python
 async with client.browser.ensure_session(profile_id) as active:
@@ -130,7 +132,7 @@ except AdsPowerApiError as e:
     print(f"API error {e.code}: {e}")
 ```
 
-connection drops and rate limits are retried automatically (tenacity, up to 4 attempts)
+connection drops and rate limits are retried automatically — up to 4 attempts with exponential backoff. AdsPowerStuckError means the app itself is hung, retrying won't help.
 
 ## Requirements
 
