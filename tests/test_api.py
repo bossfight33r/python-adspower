@@ -56,6 +56,11 @@ async def test_profiles_list():
     profiles = await api.list(size=100)
     assert len(profiles) == 2 and profiles[0].id == "id1"
 
+# @respx.mock
+# async def test_profiles_search_returns_matching():
+#     # TODO: написать когда разберусь как мокать несколько страниц
+#     pass
+
 @respx.mock
 async def test_profiles_create():
     respx.post(f"{BASE}/api/v1/user/create").mock(return_value=_ok({"id": "new_id"}))
