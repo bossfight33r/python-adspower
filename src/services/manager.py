@@ -13,7 +13,7 @@ class Manager:
         self.browser = browser
         self._sem = sem or asyncio.Semaphore(3)
 
-    async def open_all(self, profile_ids: list[str]) -> list[ActiveProfile]:
+    async def open_all(self, profile_ids: list[str]) -> list[ActiveProfile]:  # noqa: E501
         results = await asyncio.gather(*[self._open_guarded(pid) for pid in profile_ids], return_exceptions=True)
         opened = [r for r in results if isinstance(r, ActiveProfile)]
         failed = len(results) - len(opened)
