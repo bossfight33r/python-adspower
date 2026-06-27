@@ -8,13 +8,13 @@ import httpx
 
 from .api import BrowserApi, ProfilesApi
 from .exceptions import AdsPowerConnectionError
-from .services import Health, Manager
+from .services import Health, Manager, Sync
 
 LOCAL = "http://local.adspower.net:50325"
 CLOUD = "https://api.adspower.com"
 
 class AdsPowerClient:
-    def __init__(self, api_key: str = "", local: bool = True, concurrency: int = 3):
+    def __init__(self, api_key: str = "", local: bool = True, concurrency: int = 3, db_path: str = ""):
         if concurrency < 1: raise ValueError("concurrency must be >= 1")
         base = LOCAL if local else CLOUD
         headers = {} if local else {"Authorization": f"Bearer {api_key}"}
@@ -26,6 +26,7 @@ class AdsPowerClient:
         sem = asyncio.Semaphore(concurrency)
         self.manager = Manager(self.browser, sem)
         self.health  = Health(self.browser, sem)
+        self._sync   = Sync(self.profiles, db_path) if db_path else None
         self._base        = base
         self._base_params = base_params
         self._headers     = headers
@@ -34,6 +35,15 @@ class AdsPowerClient:
     def from_env(cls, **kwargs: Any) -> "AdsPowerClient":
         api_key = kwargs.pop("api_key", os.environ.get("ADSPOWER_API_KEY", ""))
         return cls(api_key=api_key, **kwargs)
+
+    @property
+    def sync(self) -> Sync:
+        if self._sync is None:
+            raise RuntimeError(
+                "AdsPowerClient created without db_path — client.sync unavailable. "
+                "Pass db_path= when creating the client."
+            )
+        return self._sync
 
     async def ping(self) -> bool:
         try:
